@@ -1,9 +1,15 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // Next.js 16 renamed the `middleware` convention to `proxy` (Node.js runtime).
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  try {
+    return await updateSession(request);
+  } catch (err) {
+    // Never let a session-refresh failure 500 the entire site — fail open.
+    console.error("[proxy] updateSession failed:", err);
+    return NextResponse.next({ request });
+  }
 }
 
 export const config = {

@@ -18,14 +18,20 @@ export default async function ConfirmPage({
 
   if (address && zip) {
     looked = true;
-    const supabase = await createClient();
-    const key = addressKey({ address_line1: address, zip });
-    // Public, non-PII lookup via a SECURITY DEFINER function (see schema.sql).
-    const { data } = await supabase.rpc("lookup_instruction", {
-      p_address_key: key,
-    });
-    const row = Array.isArray(data) ? data[0] : null;
-    if (row) instruction = row as PublicInstruction;
+    try {
+      const supabase = await createClient();
+      const key = addressKey({ address_line1: address, zip });
+      // Public, non-PII lookup via a SECURITY DEFINER function (see schema.sql).
+      const { data } = await supabase.rpc("lookup_instruction", {
+        p_address_key: key,
+      });
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) instruction = row as PublicInstruction;
+    } catch (err) {
+      // A backend hiccup should show the safe "deliver normally" state,
+      // never a 500 to a driver at someone's door.
+      console.error("[confirm] lookup failed:", err);
+    }
   }
 
   return (
